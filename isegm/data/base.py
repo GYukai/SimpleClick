@@ -30,6 +30,19 @@ class ISDataset(torch.utils.data.dataset.Dataset):
         self.dataset_samples = None
 
     def __getitem__(self, index):
+        '''
+
+        Args:
+            index:
+
+        Returns:
+            {
+                'images': torch.Tensor, # The image tensor,
+                'points': np.ndarray, # Points, take max_num_points as 24, then shape is (48, 3). First 24 is pos, last 24 is neg. First few is [y, x, 100], then extended with (-1, -1, -1).
+                'instances': np.ndarray # The mask
+            }
+
+        '''
         if self.samples_precomputed_scores is not None:
             index = np.random.choice(self.samples_precomputed_scores['indices'],
                                      p=self.samples_precomputed_scores['probs'])

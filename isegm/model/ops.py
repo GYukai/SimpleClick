@@ -54,25 +54,25 @@ class DistMaps(nn.Module):
                                                   norm_delimeter))
             coords = torch.from_numpy(np.stack(coords, axis=0)).to(points.device).float()
         else:
-            num_points = points.shape[1] // 2
-            points = points.view(-1, points.size(2))
+            num_points = points.shape[1] // 2 # 24
+            points = points.view(-1, points.size(2)) # (b, 48, 3) -> (b*48, 3)
             points, points_order = torch.split(points, [2, 1], dim=1)
 
-            invalid_points = torch.max(points, dim=1, keepdim=False)[0] < 0
+            invalid_points = torch.max(points, dim=1, keepdim=False)[0] < 0 # tensor of shape (96,) with True/False
             row_array = torch.arange(start=0, end=rows, step=1, dtype=torch.float32, device=points.device)
             col_array = torch.arange(start=0, end=cols, step=1, dtype=torch.float32, device=points.device)
 
             coord_rows, coord_cols = torch.meshgrid(row_array, col_array)
-            coords = torch.stack((coord_rows, coord_cols), dim=0).unsqueeze(0).repeat(points.size(0), 1, 1, 1)
+            coords = torch.stack((coord_rows, coord_cols), dim=0).unsqueeze(0).repeat(points.size(0), 1, 1, 1) # 96, 2, 448, 448
 
             add_xy = (points * self.spatial_scale).view(points.size(0), points.size(1), 1, 1)
             coords.add_(-add_xy)
             if not self.use_disks:
                 coords.div_(self.norm_radius * self.spatial_scale)
-            coords.mul_(coords)
+            coords.mul_(coords) # 96, 2, h, w
 
             coords[:, 0] += coords[:, 1]
-            coords = coords[:, :1]
+            coords = coords[:, :1] # Till here, coords store the squared distance from the points to the chosen pixels
 
             coords[invalid_points, :, :, :] = 1e6
 

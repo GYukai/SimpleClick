@@ -258,7 +258,7 @@ class Multi_trainer(ISTrainer):
             last_click_indx = None
 
             with torch.no_grad():
-                num_iters = random.randint(0, self.max_num_next_clicks)
+                num_iters = random.randint(0, self.max_num_next_clicks) # Here max_num_next_clicks is 3 in default
 
                 for click_indx in range(num_iters):
                     last_click_indx = click_indx
@@ -283,7 +283,7 @@ class Multi_trainer(ISTrainer):
                     zero_mask = np.random.random(size=prev_output.size(0)) < self.prev_mask_drop_prob
                     prev_output[zero_mask] = torch.zeros_like(prev_output[zero_mask])
 
-            batch_data['points'] = points
+            batch_data['points'] = points # write back if the `for click_indx` loop is executed, if it is not then is remains the same
 
             net_input = torch.cat((image, prev_output), dim=1) if self.net.with_prev_mask else image
             output = self.net(net_input, points)
