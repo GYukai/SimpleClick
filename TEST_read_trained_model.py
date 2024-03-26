@@ -76,7 +76,7 @@ def main():
     model.load_state_dict(weights['state_dict'])
     model.eval()
     cfg = edict()
-
+    cfg.weights = weight_path
     train(model, cfg, model_cfg)
 
 
@@ -131,7 +131,6 @@ def train(model, cfg, model_cfg):
     cfg.distributed = 'WORLD_SIZE' in os.environ
     cfg.local_rank = 0
     cfg.workers = 4
-    cfg.weights = "last_checkpoint.pth"
     cfg.val_batch_size = cfg.batch_size
     cfg.ngpus = 1
     cfg.device = torch.device('cuda')
@@ -155,7 +154,7 @@ def train(model, cfg, model_cfg):
     cfg.EXP_PATH = exp_path
     cfg.CHECKPOINTS_PATH = exp_path / 'checkpoints'
     cfg.VIS_PATH = exp_path / 'vis'
-    cfg.LOGS_PATH = exp_path / 'logs'
+    cfg.LOGS_PATH = exp_path / 'logs' / cfg.weights
 
     loss_cfg = edict()
     loss_cfg.instance_loss = NormalizedMultiFocalLossSigmoid(alpha=0.5, gamma=2)
