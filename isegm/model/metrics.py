@@ -91,9 +91,9 @@ class AdaptiveMIoU(TrainMetric):
         iu = iu[:-1]
         mean_iu = np.nanmean(iu)
         cls_iu = dict(zip(range(self.n_classes), iu))
-
+        sw.add_scalar(tag=f'{tag_prefix}_miou', value=mean_iu, global_step=global_step)
         for cls in range(self.n_classes):
-            sw.add_scalar(tag=f'{tag_prefix}_class_{cls}_ema_iou', value=cls_iu[cls], global_step=global_step)
+            sw.add_scalar(tag=f'{tag_prefix}_class_{cls}_iou', value=cls_iu[cls], global_step=global_step)
 
     def get_miou(self, label_trues, label_preds):
         hist = np.zeros(self.confusion_matrix.shape)
