@@ -4,6 +4,7 @@ from isegm.utils.serialization import serialize
 from .is_model import ISModel
 from .modeling.models_vit import VisionTransformer, PatchEmbed
 from .modeling.swin_transformer import SwinTransfomerSegHead
+from .ops import DistMaps, New_DistMaps
 
 
 class SimpleFPN(nn.Module):
@@ -111,7 +112,7 @@ class MultiOutVitModel(ISModel): # unused
         self.patch_embed_coords = PatchEmbed(
             img_size= backbone_params['img_size'],
             patch_size=backbone_params['patch_size'],
-            in_chans=3 if self.with_prev_mask else 2,
+            in_chans=8 if self.with_prev_mask else 2,
             embed_dim=backbone_params['embed_dim'],
         )
 
@@ -119,6 +120,8 @@ class MultiOutVitModel(ISModel): # unused
         self.neck = SimpleFPN(**neck_params)
         self.head = SwinTransfomerSegHead(**head_params)
         self.testMsg = "Test Message"
+        self.dist_maps = New_DistMaps(norm_radius=5, spatial_scale=1.0,
+                                  cpu_mode=False, use_disks=False)
 
     def backbone_forward(self, image, coord_features=None):
         coord_features = self.patch_embed_coords(coord_features)
@@ -132,3 +135,17 @@ class MultiOutVitModel(ISModel): # unused
         multi_scale_features = self.neck(backbone_features)
 
         return {'instances': self.head(multi_scale_features), 'instances_aux': None}
+
+    def forward(self, image, points): # Here points is still in like (b, 48, 3) form
+        image, prev_mask = self.prepare_input(image)
+        coord_features = self.get_coord_features(image, prev_mask, points)
+        # coord_features = self.maps_transform(coord_features)
+        outputs = self.backbone_forward(image, coord_features)
+
+        outputs['instances'] = nn.functional.interpolate(outputs['instances'], size=image.size()[2:],
+                                                         mode='bilinear', align_corners=True)
+        if self.with_aux_output:
+            outputs['instances_aux'] = nn.functional.interpolate(outputs['instances_aux'], size=image.size()[2:],
+                                                             mode='bilinear', align_corners=True)
+
+        return outputs

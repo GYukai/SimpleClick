@@ -1,8 +1,5 @@
-from isegm.data.points_sampler import MultiClassSampler
 from isegm.engine.Multi_trainer import Multi_trainer
 from isegm.inference.clicker import Click
-from isegm.model.is_plainvit_model import MultiOutVitModel
-from isegm.model.metrics import AdaptiveMIoU
 from isegm.utils.exp_imports.default import *
 from isegm.model.modeling.transformer_helper.cross_entropy_loss import CrossEntropyLoss
 
@@ -39,14 +36,14 @@ def init_model(cfg):
         in_channels=[240, 480, 960, 1920],
         in_index=[0, 1, 2, 3],
         dropout_ratio=0.1,
-        num_classes=7,
+        num_classes=1,
         loss_decode=CrossEntropyLoss(),
         align_corners=False,
         upsample=cfg.upsample,
         channels={'x1': 256, 'x2': 128, 'x4': 64}[cfg.upsample],
     )
 
-    model = MultiOutVitModel(
+    model = PlainVitModel(
         use_disks=True,
         norm_radius=5,
         with_prev_mask=True,
@@ -68,7 +65,7 @@ def train(model, cfg, model_cfg):
     crop_size = model_cfg.crop_size
 
     loss_cfg = edict()
-    loss_cfg.instance_loss = NormalizedMultiFocalLossSigmoid(alpha=0.5, gamma=2)
+    loss_cfg.instance_loss = NormalizedFocalLossSigmoid(alpha=0.5, gamma=2)
     loss_cfg.instance_loss_weight = 1.0
 
     train_augmentator = Compose([
@@ -85,7 +82,7 @@ def train(model, cfg, model_cfg):
         RandomCrop(*crop_size)
     ], p=1.0)
 
-    points_sampler = MultiClassSampler(100, prob_gamma=0.80,
+    points_sampler = MultiPointSampler(10, prob_gamma=0.80,
                                        merge_objects_prob=0.15,
                                        max_num_merged_objects=2)
 
@@ -115,7 +112,7 @@ def train(model, cfg, model_cfg):
 
     lr_scheduler = partial(torch.optim.lr_scheduler.MultiStepLR,
                            milestones=[50, 55], gamma=0.1)
-    trainer = Multi_trainer(model, cfg, model_cfg, loss_cfg,
+    trainer = ISTrainer(model, cfg, model_cfg, loss_cfg,
                         trainset, valset,
                         optimizer='adam',
                         optimizer_params=optimizer_params,
@@ -123,7 +120,7 @@ def train(model, cfg, model_cfg):
                         lr_scheduler=lr_scheduler,
                         checkpoint_interval=[(0, 20), (50, 1)],
                         image_dump_interval=300,
-                        metrics=[AdaptiveMIoU(num_classes=7)],
+                        metrics=[AdaptiveIoU()],
                         max_interactive_points=model_cfg.num_max_points,
-                        max_num_next_clicks=15)
+                        max_num_next_clicks=3)
     trainer.run(num_epochs=55, validation=False)

@@ -381,21 +381,21 @@ def get_next_points(pred, gt, points, click_indx, pred_thresh=0.49):
     fp_mask = np.logical_and(np.logical_not(gt), pred > pred_thresh)
 
     fn_mask = np.pad(fn_mask, ((0, 0), (1, 1), (1, 1)), 'constant').astype(np.uint8)
-    fp_mask = np.pad(fp_mask, ((0, 0), (1, 1), (1, 1)), 'constant').astype(np.uint8)
+    fp_mask = np.pad(fp_mask, ((0, 0), (1, 1), (1, 1)), 'constant').astype(np.uint8) # A edge padding of 1 pixel of zero for cv2.distanceTransform
     num_points = points.size(1) // 2
     points = points.clone()
 
     for bindx in range(fn_mask.shape[0]):
         fn_mask_dt = cv2.distanceTransform(fn_mask[bindx], cv2.DIST_L2, 5)[1:-1, 1:-1]
-        fp_mask_dt = cv2.distanceTransform(fp_mask[bindx], cv2.DIST_L2, 5)[1:-1, 1:-1]
+        fp_mask_dt = cv2.distanceTransform(fp_mask[bindx], cv2.DIST_L2, 5)[1:-1, 1:-1] # Output a mask with each pixel with distance to nearest zero
 
-        fn_max_dist = np.max(fn_mask_dt)
+        fn_max_dist = np.max(fn_mask_dt) # max distance as value
         fp_max_dist = np.max(fp_mask_dt)
 
         is_positive = fn_max_dist > fp_max_dist
         dt = fn_mask_dt if is_positive else fp_mask_dt
-        inner_mask = dt > max(fn_max_dist, fp_max_dist) / 2.0
-        indices = np.argwhere(inner_mask)
+        inner_mask = dt > max(fn_max_dist, fp_max_dist) / 2.0 # output a mask with each pixel with distance to nearest zero > (max distance / 2)
+        indices = np.argwhere(inner_mask) # get the nd list of the pixels that are True in the inner_mask
         if len(indices) > 0:
             coords = indices[np.random.randint(0, len(indices))]
             if is_positive:

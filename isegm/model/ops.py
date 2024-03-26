@@ -90,6 +90,68 @@ class DistMaps(nn.Module):
     def forward(self, x, coords):
         return self.get_coord_features(coords, x.shape[0], x.shape[2], x.shape[3])
 
+class New_DistMaps(nn.Module):
+    def __init__(self, norm_radius, spatial_scale=1.0, cpu_mode=False, use_disks=False):
+        super(New_DistMaps, self).__init__()
+        self.spatial_scale = spatial_scale
+        self.norm_radius = norm_radius
+        self.cpu_mode = cpu_mode
+        self.use_disks = use_disks
+        if self.cpu_mode:
+            from isegm.utils.cython import get_dist_maps
+            self._get_dist_maps = get_dist_maps
+
+    def get_coord_features(self, points, batchsize, rows, cols):
+        if self.cpu_mode:
+            coords = []
+            for i in range(batchsize):
+                norm_delimeter = 1.0 if self.use_disks else self.spatial_scale * self.norm_radius
+                coords.append(self._get_dist_maps(points[i].cpu().float().numpy(), rows, cols,
+                                                  norm_delimeter))
+            coords = torch.from_numpy(np.stack(coords, axis=0)).to(points.device).float()
+        else:
+            mask = ~(points == torch.tensor([-1, -1, -1],device=points.device)).all(dim=-1)
+            points = points[mask]
+            points = points.unsqueeze(0)
+            point_num = points.shape[1]
+            if point_num == 0:
+                print("No point")
+                exit(1)
+            else:
+                points = points.view(-1, points.size(2))
+                points, points_cls = torch.split(points, [2, 1], dim=1)
+                invalid_points = torch.max(points, dim=1, keepdim=False)[0] < 0
+                row_array = torch.arange(start=0, end=rows, step=1, dtype=torch.float32, device=points.device)
+                col_array = torch.arange(start=0, end=cols, step=1, dtype=torch.float32, device=points.device)
+                coord_rows, coord_cols = torch.meshgrid(row_array, col_array)
+
+                coords = torch.stack((coord_rows, coord_cols), dim=0).unsqueeze(0).repeat(points.size(0), 1, 1, 1)
+
+                add_xy = (points * 1).view(points.size(0), points.size(1), 1, 1)
+                coords.add_(-add_xy)
+                coords.mul_(coords)  # 96, 2, h, w
+                coords[:, 0] += coords[:, 1]
+                coords = coords[:, :1]
+                coords[invalid_points, :, :, :] = 1e6
+                coords = coords.view(-1, point_num, 1, rows, cols)
+
+                coords = coords.view(-1, 1, rows, cols)
+
+                coords = (coords <= (5) ** 2).float()
+
+                zeros = torch.zeros_like(coords)
+                res = zeros.repeat(1, 7, 1, 1) # TODO 7 cls magic
+
+                for i in range(len(points_cls)):
+                    cls = int(points_cls[i])
+                    res[i, cls] = coords[i, 0]
+                res = res.view(-1,point_num, 7, rows, cols) # TODO 7 cls magic
+                res = res.max(dim=1)[0]
+            return res
+
+    def forward(self, x, coords):
+        return self.get_coord_features(coords, x.shape[0], x.shape[2], x.shape[3])
+
 
 class ScaleLayer(nn.Module):
     def __init__(self, init_value=1.0, lr_mult=1):

@@ -1,5 +1,6 @@
 import os
 import pickle as pkl
+import random
 from pathlib import Path
 
 import cv2
@@ -133,5 +134,52 @@ class PASCAL(ISDataset):
                 instances_mask[instances_mask == obj_id] = 0
 
         return instances_mask
+
+    def __getitem__(self, index): # points should be sampled from the whole mask
+        '''
+
+        Args:
+            index:
+
+        Returns:
+            {
+                'images': torch.Tensor, # The image tensor,
+                'points': np.ndarray, # Points, take max_num_points as 24, then shape is (48, 3). First 24 is pos, last 24 is neg. First few is [y, x, 100], then extended with (-1, -1, -1).
+                'instances': np.ndarray # The mask
+            }
+
+        '''
+        if self.samples_precomputed_scores is not None:
+            index = np.random.choice(self.samples_precomputed_scores['indices'],
+                                     p=self.samples_precomputed_scores['probs'])
+        else:
+            if self.epoch_len > 0:
+                index = random.randrange(0, len(self.dataset_samples))
+
+        sample = self.get_sample(index)
+        sample = self.augment_sample(sample)
+        sample.remove_small_objects(self.min_object_area)
+        init_points = cv2.imread(sample.init_clicks)[:,:,0]
+        rows, cols = np.where(init_points != 255)
+        non_255_values = init_points[rows, cols]
+        coords_and_values = list(zip(rows, cols, non_255_values))
+        coords_and_values.extend([(-1, -1, -1)] * (self.points_sampler.max_num_points - len(coords_and_values)))
+        init_points = np.array(coords_and_values)
+        self.points_sampler.sample_object(sample)
+        points = np.array(self.points_sampler.sample_points())
+
+        mask = self.points_sampler.selected_mask
+
+        output = {
+            'images': self.to_tensor(sample.image),
+            'points': init_points.astype(np.float32),
+            'instances': mask,
+            # 'init_points': init_points.astype(np.float32)
+        }
+
+        if self.with_image_info:
+            output['image_info'] = sample.sample_id
+
+        return output
     
 

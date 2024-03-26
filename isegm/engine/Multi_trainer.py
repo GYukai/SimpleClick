@@ -171,8 +171,8 @@ class Multi_trainer(ISTrainer):
                     if '_loss' in k and hasattr(v, 'log_states') and self.loss_cfg.get(k + '_weight', 0.0) > 0:
                         v.log_states(self.sw, f'{log_prefix}Losses/{k}', global_step)
 
-                if self.image_dump_interval > 0 and global_step % self.image_dump_interval == 0:
-                    self.save_visualization(splitted_batch_data, outputs, global_step, prefix='train')
+                # if self.image_dump_interval > 0 and global_step % self.image_dump_interval == 0:
+                #     self.save_visualization(splitted_batch_data, outputs, global_step, prefix='train')
 
                 self.sw.add_scalar(tag=f'{log_prefix}States/learning_rate',
                                    value=self.lr if not hasattr(self, 'lr_scheduler') else self.lr_scheduler.get_lr()[-1],
@@ -256,9 +256,9 @@ class Multi_trainer(ISTrainer):
             prev_output = torch.zeros_like(image, dtype=torch.float32)[:, :1, :, :]
 
             last_click_indx = None
-
+            # First part
             with torch.no_grad():
-                num_iters = random.randint(0, self.max_num_next_clicks) # Here max_num_next_clicks is 3 in default
+                num_iters = self.max_num_next_clicks # Here max_num_next_clicks is 3 in default
 
                 for click_indx in range(num_iters):
                     last_click_indx = click_indx
@@ -273,7 +273,7 @@ class Multi_trainer(ISTrainer):
 
                     net_input = torch.cat((image, prev_output), dim=1) if self.net.with_prev_mask else image
                     prev_output = torch.sigmoid(eval_model(net_input, points)['instances'])
-
+                    prev_output = torch.max(prev_output, dim=1, keepdim=True)[1]
                     points = get_next_points(prev_output, orig_gt_mask, points, click_indx + 1)
 
                     if not validation:
@@ -375,40 +375,60 @@ class Multi_trainer(ISTrainer):
 
 def get_next_points(pred, gt, points, click_indx, pred_thresh=0.49):
     assert click_indx > 0
-    pred = pred.cpu().numpy()[:, 0, :, :]
-    gt = gt.cpu().numpy()[:, 0, :, :] > 0.5
+    pred_o = pred.cpu().numpy()[:, 0, :, :]
+    gt_o = gt.cpu().numpy()[:, :, :, 0]
+    rows = []
+    for bindx in range(pred.shape[0]):
+        gt = gt_o[bindx]
+        pred = pred_o[bindx]
+        areas = []
+        for cls in np.unique(gt):
+            area_value, max_idx, _, _ = get_contours_and_maxidx(cls, gt, pred)
+            areas.append([cls, area_value])
+        areas = sorted(areas, key=lambda x: x[1], reverse=True)
+        max_area_cls = areas[0][0]
+        area, max_idx, contours, fn_mask = get_contours_and_maxidx(max_area_cls, gt, pred)
+        for k in range(len(contours)):
+            if k != max_idx:
+                cv2.fillPoly(fn_mask, [contours[k]], 0)
 
-    fn_mask = np.logical_and(gt, pred < pred_thresh)
-    fp_mask = np.logical_and(np.logical_not(gt), pred > pred_thresh)
+        points = points.clone()
 
-    fn_mask = np.pad(fn_mask, ((0, 0), (1, 1), (1, 1)), 'constant').astype(np.uint8)
-    fp_mask = np.pad(fp_mask, ((0, 0), (1, 1), (1, 1)), 'constant').astype(np.uint8)
-    num_points = points.size(1) // 2
-    points = points.clone()
-
-    for bindx in range(fn_mask.shape[0]):
-        fn_mask_dt = cv2.distanceTransform(fn_mask[bindx], cv2.DIST_L2, 5)[1:-1, 1:-1]
-        fp_mask_dt = cv2.distanceTransform(fp_mask[bindx], cv2.DIST_L2, 5)[1:-1, 1:-1]
+        fn_mask_dt = cv2.distanceTransform(fn_mask, cv2.DIST_L2, 5)[1:-1, 1:-1]
 
         fn_max_dist = np.max(fn_mask_dt)
-        fp_max_dist = np.max(fp_mask_dt)
 
-        is_positive = fn_max_dist > fp_max_dist
-        dt = fn_mask_dt if is_positive else fp_mask_dt
-        inner_mask = dt > max(fn_max_dist, fp_max_dist) / 2.0
+        is_positive = True
+        dt = fn_mask_dt
+        inner_mask = dt > (fn_max_dist / 2.0)
         indices = np.argwhere(inner_mask)
         if len(indices) > 0:
             coords = indices[np.random.randint(0, len(indices))]
-            if is_positive:
-                points[bindx, num_points - click_indx, 0] = float(coords[0])
-                points[bindx, num_points - click_indx, 1] = float(coords[1])
-                points[bindx, num_points - click_indx, 2] = float(click_indx)
-            else:
-                points[bindx, 2 * num_points - click_indx, 0] = float(coords[0])
-                points[bindx, 2 * num_points - click_indx, 1] = float(coords[1])
-                points[bindx, 2 * num_points - click_indx, 2] = float(click_indx)
+            new_row = np.array([float(coords[0]),float(coords[1]), float(max_area_cls)])
+            rows.append(new_row)
+        else:
+            return points
 
+    rows = np.vstack(rows)
+    rows = rows[:,np.newaxis,:]
+    points = torch.cat((points, torch.from_numpy(rows).float().to(points.device)), dim=1) # TODO Point Number issue
     return points
+
+
+def get_contours_and_maxidx(cls, gt, pred):
+    t_gt = gt == cls
+    t_pred = pred == cls
+    t_fn = np.logical_and(t_gt, np.logical_not(t_pred)).astype(np.uint8)
+    contours, hierarchy = cv2.findContours(t_fn, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    area = []
+    for j in range(len(contours)):
+        area.append(cv2.contourArea(contours[j]))
+    if len(area) == 0:
+        return 0, 0, contours, t_fn
+    else:
+        max_idx = np.argmax(area)
+        area_value = area[max_idx]
+        return area_value, max_idx, contours, t_fn
 
 
 def load_weights(model, path_to_weights):
