@@ -115,8 +115,9 @@ class New_DistMaps(nn.Module):
             points = points.unsqueeze(0)
             point_num = points.shape[1]
             if point_num == 0:
-                print("No point")
-                exit(1)
+                zeros = torch.zeros(1, 1, rows, cols, device=points.device)
+                res = zeros.repeat(1, 7, 1, 1)  # TODO 7 cls magic
+                return res
             else:
                 points = points.view(-1, points.size(2))
                 points, points_cls = torch.split(points, [2, 1], dim=1)
