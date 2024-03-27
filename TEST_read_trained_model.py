@@ -77,6 +77,7 @@ def main():
     model.eval()
     cfg = edict()
     cfg.weights = weight_path
+    cfg.extra_name = "only_init"
     train(model, cfg, model_cfg)
 
 
@@ -154,7 +155,7 @@ def train(model, cfg, model_cfg):
     cfg.EXP_PATH = exp_path
     cfg.CHECKPOINTS_PATH = exp_path / 'checkpoints'
     cfg.VIS_PATH = exp_path / 'vis'
-    cfg.LOGS_PATH = exp_path / 'logs' / cfg.weights
+    cfg.LOGS_PATH = exp_path / 'logs' / cfg.weights /cfg.extra_name
 
     loss_cfg = edict()
     loss_cfg.instance_loss = NormalizedMultiFocalLossSigmoid(alpha=0.5, gamma=2)
