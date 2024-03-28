@@ -110,9 +110,9 @@ class New_DistMaps(nn.Module):
                                                   norm_delimeter))
             coords = torch.from_numpy(np.stack(coords, axis=0)).to(points.device).float()
         else:
-            mask = ~(points == torch.tensor([-1, -1, -1],device=points.device)).all(dim=-1)
-            points = points[mask]
-            points = points.unsqueeze(0)
+            # mask = ~(points == torch.tensor([-1, -1, -1],device=points.device)).all(dim=-1)
+            # points = points[mask]
+            # points = points.unsqueeze(0)
             point_num = points.shape[1]
             if point_num == 0:
                 zeros = torch.zeros(1, 1, rows, cols, device=points.device)
