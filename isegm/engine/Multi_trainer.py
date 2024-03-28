@@ -373,45 +373,23 @@ class Multi_trainer(ISTrainer):
         return self.cfg.local_rank == 0
 
 
-def get_next_points(pred, gt, points, click_indx, pred_thresh=0.49):
+def get_next_points(pred, gt, points, click_indx, points_num=15):
     assert click_indx > 0
     pred_o = pred.cpu().numpy()[:, 0, :, :]
     gt_o = gt.cpu().numpy()[:, :, :, 0]
-    rows = []
-    for bindx in range(pred.shape[0]):
-        gt = gt_o[bindx]
-        pred = pred_o[bindx]
-        areas = []
-        for cls in np.unique(gt):
-            area_value, max_idx, _, _ = get_contours_and_maxidx(cls, gt, pred)
-            areas.append([cls, area_value])
-        areas = sorted(areas, key=lambda x: x[1], reverse=True)
-        max_area_cls = areas[0][0]
-        area, max_idx, contours, fn_mask = get_contours_and_maxidx(max_area_cls, gt, pred)
-        for k in range(len(contours)):
-            if k != max_idx:
-                cv2.fillPoly(fn_mask, [contours[k]], 0)
-
-        points = points.clone()
-
-        fn_mask_dt = cv2.distanceTransform(fn_mask, cv2.DIST_L2, 5)[1:-1, 1:-1]
-
-        fn_max_dist = np.max(fn_mask_dt)
-
-        is_positive = True
-        dt = fn_mask_dt
-        inner_mask = dt > (fn_max_dist / 2.0)
-        indices = np.argwhere(inner_mask)
-        if len(indices) > 0:
-            coords = indices[np.random.randint(0, len(indices))]
-            new_row = np.array([float(coords[0]),float(coords[1]), float(max_area_cls)])
-            rows.append(new_row)
-        else:
-            return points
-
-    rows = np.vstack(rows)
-    rows = rows[:,np.newaxis,:]
-    points = torch.cat((points, torch.from_numpy(rows).float().to(points.device)), dim=1) # TODO Point Number issue
+    f_area = pred_o != gt_o
+    f_area_idx = np.where(f_area)
+    num_samples = min(points_num*gt_o.shape[0], len(f_area_idx[0]))
+    random_indices = np.random.choice(len(f_area_idx[0]), size=num_samples, replace=False)
+    _points = [[f_area_idx[0][x]
+                   , f_area_idx[1][x]
+                   , f_area_idx[2][x]
+                   , gt_o[f_area_idx[0][x],f_area_idx[1][x], f_area_idx[2][x]]
+                ] for x in random_indices]
+    res_points = np.ones((gt_o.shape[0],num_samples,3))*(-1)
+    for i, point in enumerate(_points):
+        res_points[point[0], i] = [point[1], point[2], point[3]]
+    points = torch.cat((points, torch.from_numpy(res_points).float().to(points.device)), dim=1) # TODO Point Number issue
     return points
 
 
