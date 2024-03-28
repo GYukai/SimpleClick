@@ -135,6 +135,9 @@ class PASCAL(ISDataset):
 
         return instances_mask
 
+    def __len__(self):
+        return len(self.dataset_samples)
+
     def __getitem__(self, index): # points should be sampled from the whole mask
         '''
 
