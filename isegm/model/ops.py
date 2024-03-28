@@ -148,7 +148,7 @@ class New_DistMaps(nn.Module):
                     res[i, cls] = coords[i, 0]
                 res = res.view(-1,point_num, 7, rows, cols) # TODO 7 cls magic
                 res = res.max(dim=1)[0]
-            return res
+            return res*255
 
     def forward(self, x, coords):
         return self.get_coord_features(coords, x.shape[0], x.shape[2], x.shape[3])
