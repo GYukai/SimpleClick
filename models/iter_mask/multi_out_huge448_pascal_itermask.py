@@ -125,5 +125,5 @@ def train(model, cfg, model_cfg):
                         image_dump_interval=300,
                         metrics=[AdaptiveMIoU(num_classes=7)],
                         max_interactive_points=model_cfg.num_max_points,
-                        max_num_next_clicks=15)
+                        max_num_next_clicks=1)
     trainer.run(num_epochs=55, validation=False)
