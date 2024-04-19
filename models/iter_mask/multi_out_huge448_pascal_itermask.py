@@ -1,3 +1,4 @@
+from isegm.data.datasets.cityscapes import CityScapes
 from isegm.data.points_sampler import MultiClassSampler
 from isegm.engine.Multi_trainer import Multi_trainer
 from isegm.inference.clicker import Click
@@ -89,8 +90,8 @@ def train(model, cfg, model_cfg):
                                        merge_objects_prob=0.15,
                                        max_num_merged_objects=2)
 
-    trainset = PASCAL(
-        cfg.PASCAL_PATH,
+    trainset = CityScapes(
+        cfg.CITYSCAPES_PATH,
         split='train',
         augmentator=train_augmentator,
         min_object_area=1000,
@@ -100,8 +101,8 @@ def train(model, cfg, model_cfg):
         # stuff_prob=0.30
     )
 
-    valset = PASCAL(
-        cfg.PASCAL_PATH,
+    valset = CityScapes(
+        cfg.CITYSCAPES_PATH,
         split='val',
         augmentator=val_augmentator,
         min_object_area=1000,
