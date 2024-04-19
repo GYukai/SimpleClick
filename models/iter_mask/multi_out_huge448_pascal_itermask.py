@@ -92,6 +92,7 @@ def train(model, cfg, model_cfg):
 
     trainset = CityScapes(
         cfg.CITYSCAPES_PATH,
+        first_return_points=cfg.first_return_points,
         split='train',
         augmentator=train_augmentator,
         min_object_area=1000,
@@ -103,6 +104,7 @@ def train(model, cfg, model_cfg):
 
     valset = CityScapes(
         cfg.CITYSCAPES_PATH,
+        first_return_points=cfg.first_return_points,
         split='val',
         augmentator=val_augmentator,
         min_object_area=1000,

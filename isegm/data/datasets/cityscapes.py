@@ -13,9 +13,10 @@ import pickle
 
 
 class CityScapes(ISDataset):
-    def __init__(self, dataset_path, split="train", use_cache=True, **kwargs):
+    def __init__(self, dataset_path, split="train", use_cache=True, first_return_points=True, **kwargs):
         super(CityScapes, self).__init__(**kwargs)
         assert split in {"train", "val", "trainval", "test"}
+        assert first_return_points in {"init", "random", "blank"}
         self.name = "Cityscapes"
         self.dataset_path = Path(dataset_path)
         self._images_path = Path("leftImg8bit") / split
@@ -24,6 +25,8 @@ class CityScapes(ISDataset):
         self.dataset_split = split
         self.class_num = 19
         self.ignore_id = 255
+        self.first_return_points = first_return_points
+
 
         self.loadfile = self.dataset_split+".pkl"
         if os.path.exists(str(self.dataset_path/self.loadfile)) and use_cache:
@@ -110,6 +113,12 @@ class CityScapes(ISDataset):
         self.points_sampler.sample_object(sample)
         points = np.array(self.points_sampler.sample_points())
         mask = self.points_sampler.selected_mask
+        if self.first_return_points=="init":
+            points = init_points
+        elif self.first_return_points=="random":
+            points = points
+        else:
+            points = np.ones((self.points_sampler.max_num_points, 3))*-1
         output = {
             'images': self.to_tensor(sample.image),
             'points': points.astype(np.float32),

@@ -76,6 +76,7 @@ def parse_args():
 
     parser.add_argument('--random-split', action='store_true', 
                         help='random split the patch instead of window split.')
+    parser.add_argument('--first-return-points',type=str, default='blank',choices=["init", "random", "blank"])
 
     return parser.parse_args()
 
