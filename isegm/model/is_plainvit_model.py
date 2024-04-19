@@ -112,7 +112,7 @@ class MultiOutVitModel(ISModel): # unused
         self.patch_embed_coords = PatchEmbed(
             img_size= backbone_params['img_size'],
             patch_size=backbone_params['patch_size'],
-            in_chans=8 if self.with_prev_mask else 2,
+            in_chans=20 if self.with_prev_mask else 2,
             embed_dim=backbone_params['embed_dim'],
         )
 
