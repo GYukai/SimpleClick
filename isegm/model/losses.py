@@ -101,7 +101,8 @@ class NormalizedMultiFocalLossSigmoid(nn.Module):
             label = label.unsqueeze(0)
         N, H, W = label.shape
         C = pred.shape[1]
-        label_one_hot = F.one_hot(label, num_classes=C).permute(0, 3, 1, 2).float()
+        label[label==self._ignore_label] = C
+        label_one_hot = F.one_hot(label, num_classes=C+1)[:,:,:,:C].permute(0, 3, 1, 2).float()
         sample_weight = (label != self._ignore_label).float()
         sample_weight_expanded = sample_weight.unsqueeze(1)
         sample_weight_expanded = sample_weight_expanded.expand(-1, C, -1, -1)
