@@ -305,6 +305,9 @@ def get_point_candidates(obj_mask, k=1.7, full_prob=0.0):
         return np.array([click_coords])
 
 class MultiClassSampler(MultiPointSampler):
+    def __init__(self, ignore_label=255, **kwargs):
+        super().__init__(**kwargs)
+        self.ignore_label = ignore_label
     def sample_object(self, sample: DSample):
         '''
 
@@ -330,12 +333,16 @@ class MultiClassSampler(MultiPointSampler):
         num_points = self.max_num_points
         # num_points = 1 + np.random.choice(np.arange(self.max_num_points), p=self._pos_probs)
         h, w = self._selected_mask.shape[:2]
+        valid_mask = self._selected_mask[:, :, 0] != self.ignore_label
+        valid_indices = np.where(valid_mask)
+        selected_indices = np.random.choice(len(valid_indices[0]), self.max_num_points, replace=False)
+
         points = []
-        y = np.random.randint(0, h, num_points)
-        x = np.random.randint(0, w, num_points)
-        for i in range(num_points):
-            cls = self._selected_mask[y[i], x[i]][0]
-            points.append([y[i], x[i], cls])
+
+        for idx in selected_indices:
+            y, x = valid_indices[0][idx], valid_indices[1][idx]
+            cls = self._selected_mask[y, x, 0]
+            points.append([y, x, cls])
 
         return points
 

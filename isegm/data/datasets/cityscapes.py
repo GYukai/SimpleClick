@@ -108,10 +108,11 @@ class CityScapes(ISDataset):
         coords_and_values.extend([(-1, -1, -1)] * (self.points_sampler.max_num_points - len(coords_and_values)))
         init_points = np.array(coords_and_values)
         self.points_sampler.sample_object(sample)
+        points = np.array(self.points_sampler.sample_points())
         mask = self.points_sampler.selected_mask
         output = {
             'images': self.to_tensor(sample.image),
-            'points': init_points.astype(np.float32),
+            'points': points.astype(np.float32),
             'instances': mask,
             # 'init_points': init_points.astype(np.float32)
         }

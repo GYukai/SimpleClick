@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import torch
 from torchvision import transforms
-from .points_sampler import MultiPointSampler
+from .points_sampler import MultiPointSampler, MultiClassSampler
 from .sample import DSample
 
 

@@ -86,7 +86,7 @@ def train(model, cfg, model_cfg):
         RandomCrop(*crop_size)
     ], p=1.0)
 
-    points_sampler = MultiClassSampler(100, prob_gamma=0.80,
+    points_sampler = MultiClassSampler(max_num_points=100, prob_gamma=0.80,
                                        merge_objects_prob=0.15,
                                        max_num_merged_objects=2)
 
