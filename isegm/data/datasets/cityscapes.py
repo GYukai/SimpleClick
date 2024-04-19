@@ -111,12 +111,11 @@ class CityScapes(ISDataset):
         coords_and_values.extend([(-1, -1, -1)] * (self.points_sampler.max_num_points - len(coords_and_values)))
         init_points = np.array(coords_and_values)
         self.points_sampler.sample_object(sample)
-        points = np.array(self.points_sampler.sample_points())
         mask = self.points_sampler.selected_mask
         if self.first_return_points=="init":
             points = init_points
         elif self.first_return_points=="random":
-            points = points
+            points = np.array(self.points_sampler.sample_points())
         else:
             points = np.ones((self.points_sampler.max_num_points, 3))*-1
         output = {
