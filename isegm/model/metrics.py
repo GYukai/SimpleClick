@@ -53,9 +53,9 @@ class AdaptiveMIoU(TrainMetric):
         if label_trues.dim() == 2:
             label_trues = label_trues.unsqueeze(0)
         for lt, lp in zip(label_trues, label_preds):
-            lt = lt.detach().cpu().numpy()
-            lp = lp.detach().cpu().numpy()
-            self.confusion_matrix += self._fast_hist(lt.flatten(), lp.flatten())
+            lt_ = lt.detach().cpu().numpy()
+            lp_ = lp.detach().cpu().numpy()
+            self.confusion_matrix += self._fast_hist(lt_.flatten(), lp_.flatten())
         self._epoch_batch_count += 1
 
     def _fast_hist(self,label_pred, label_true):
@@ -84,9 +84,9 @@ class AdaptiveMIoU(TrainMetric):
 
     def log_states(self, sw, tag_prefix, global_step):
         hist = self.confusion_matrix
-        acc = np.diag(hist).sum() / hist.sum()
-        acc_cls = np.diag(hist) / hist.sum(axis=1)
-        acc_cls = np.nanmean(acc_cls)
+        # acc = np.diag(hist).sum() / hist.sum()
+        # acc_cls = np.diag(hist) / hist.sum(axis=1)
+        # acc_cls = np.nanmean(acc_cls)
         iu = np.diag(hist) / (hist.sum(axis=1) + hist.sum(axis=0) - np.diag(hist))
         iu = iu[:-1]
         mean_iu = np.nanmean(iu)
