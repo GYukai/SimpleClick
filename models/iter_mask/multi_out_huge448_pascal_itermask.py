@@ -69,7 +69,7 @@ def train(model, cfg, model_cfg):
     crop_size = model_cfg.crop_size
 
     loss_cfg = edict()
-    loss_cfg.instance_loss = NormalizedMultiFocalLossSigmoid(alpha=0.5, gamma=2)
+    loss_cfg.instance_loss = NormalizedMultiFocalLossSigmoid(alpha=0.5, gamma=2,ignore_label=255)
     loss_cfg.instance_loss_weight = 1.0
 
     train_augmentator = Compose([
@@ -124,7 +124,7 @@ def train(model, cfg, model_cfg):
                         lr_scheduler=lr_scheduler,
                         checkpoint_interval=[(0, 20), (50, 1)],
                         image_dump_interval=300,
-                        metrics=[AdaptiveMIoU(num_classes=7)],
+                        metrics=[AdaptiveMIoU(num_classes=19,ignore_label=255)],
                         max_interactive_points=model_cfg.num_max_points,
                         max_num_next_clicks=1)
     trainer.run(num_epochs=55, validation=False)
