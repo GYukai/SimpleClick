@@ -377,7 +377,7 @@ def get_next_points(pred, gt, points, click_indx, points_num=15):
     assert click_indx > 0
     pred_o = pred.cpu().numpy()[:, 0, :, :]
     gt_o = gt.cpu().numpy()[:, :, :, 0]
-    f_area = pred_o != gt_o
+    f_area = np.logical_and(pred_o != gt_o, gt_o != 255)
     f_area_idx = np.where(f_area)
     num_samples = min(points_num*gt_o.shape[0], len(f_area_idx[0]))
     random_indices = np.random.choice(len(f_area_idx[0]), size=num_samples, replace=False)

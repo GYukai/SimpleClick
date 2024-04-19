@@ -320,8 +320,10 @@ class MultiClassSampler(MultiPointSampler):
 
     def sample_points(self):
         '''
-        Randomly sample points from gt_mask. \n
-        Returns:
+        Randomly sample points from gt_mask. The number of points is max_num_points.
+        Note that the cls cannot be 255.
+
+        Returns: points
 
         '''
         assert self._selected_mask is not None

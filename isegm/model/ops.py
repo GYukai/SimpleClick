@@ -116,7 +116,7 @@ class New_DistMaps(nn.Module):
             point_num = points.shape[1]
             if point_num == 0:
                 zeros = torch.zeros(1, 1, rows, cols, device=points.device)
-                res = zeros.repeat(1, 7, 1, 1)  # TODO 7 cls magic
+                res = zeros.repeat(1, 19, 1, 1)  # TODO 7 cls magic
                 return res
             else:
                 points = points.view(-1, points.size(2))
@@ -141,12 +141,12 @@ class New_DistMaps(nn.Module):
                 coords = (coords <= (5) ** 2).float()
 
                 zeros = torch.zeros_like(coords)
-                res = zeros.repeat(1, 7, 1, 1) # TODO 7 cls magic
+                res = zeros.repeat(1, 19, 1, 1) # TODO 19 cls magic
 
                 for i in range(len(points_cls)):
                     cls = int(points_cls[i])
                     res[i, cls] = coords[i, 0]
-                res = res.view(-1,point_num, 7, rows, cols) # TODO 7 cls magic
+                res = res.view(-1,point_num, 19, rows, cols) # TODO 19 cls magic
                 res = res.max(dim=1)[0]
             return res*255
 
