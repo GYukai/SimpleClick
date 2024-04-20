@@ -108,7 +108,7 @@ class CityScapes(ISDataset):
         rows, cols = np.where(init_points != 255)
         non_255_values = init_points[rows, cols]
         coords_and_values = list(zip(rows, cols, non_255_values))
-        coords_and_values.extend([(-1, -1, -1)] * (self.points_sampler.max_num_points - len(coords_and_values)))
+        # coords_and_values.extend([(-1, -1, -1)] * (self.points_sampler.max_num_points - len(coords_and_values)))
         init_points = np.array(coords_and_values)
         self.points_sampler.sample_object(sample)
         mask = self.points_sampler.selected_mask
@@ -117,7 +117,7 @@ class CityScapes(ISDataset):
         elif self.first_return_points=="random":
             points = np.array(self.points_sampler.sample_points())
         else:
-            points = np.ones((self.points_sampler.max_num_points, 3))*-1
+            points = np.array([(-1, -1, -1)])
         output = {
             'images': self.to_tensor(sample.image),
             'points': points.astype(np.float32),

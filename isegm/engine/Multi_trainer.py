@@ -17,6 +17,7 @@ from isegm.utils.serialization import get_config_repr
 from isegm.utils.distributed import get_dp_wrapper, get_sampler, reduce_loss_dict
 from .optimizer import get_optimizer, get_optimizer_with_layerwise_decay
 from .trainer import ISTrainer
+from ..data.base import is_dataset_collate_fn
 
 
 class Multi_trainer(ISTrainer):
@@ -75,14 +76,16 @@ class Multi_trainer(ISTrainer):
             trainset, cfg.batch_size,
             sampler=get_sampler(trainset, shuffle=True, distributed=cfg.distributed),
             drop_last=True, pin_memory=True,
-            num_workers=cfg.workers
+            num_workers=cfg.workers,
+            collate_fn=is_dataset_collate_fn
         )
 
         self.val_data = DataLoader(
             valset, cfg.val_batch_size,
             sampler=get_sampler(valset, shuffle=False, distributed=cfg.distributed),
             drop_last=True, pin_memory=True,
-            num_workers=cfg.workers
+            num_workers=cfg.workers,
+            collate_fn=is_dataset_collate_fn
         )
 
         if layerwise_decay:
@@ -245,6 +248,8 @@ class Multi_trainer(ISTrainer):
                                    global_step=epoch, disable_avg=True)
 
     def batch_forward(self, batch_data, validation=False):
+        batch_data = {'images': batch_data[0], 'points': batch_data[1],
+                      'instances': batch_data[2]}
         metrics = self.val_metrics if validation else self.train_metrics
         losses_logging = dict()
 
