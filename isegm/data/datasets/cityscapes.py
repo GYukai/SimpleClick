@@ -13,7 +13,7 @@ import pickle
 
 
 class CityScapes(ISDataset):
-    def __init__(self, dataset_path, split="train", use_cache=True, first_return_points=True, **kwargs):
+    def __init__(self, dataset_path, split="train", use_cache=True, first_return_points="init", **kwargs):
         super(CityScapes, self).__init__(**kwargs)
         assert split in {"train", "val", "trainval", "test"}
         assert first_return_points in {"init", "random", "blank"}
