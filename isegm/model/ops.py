@@ -117,18 +117,17 @@ class New_DistMaps(nn.Module):
             if point_num == 0:
                 zeros = torch.zeros(1, 1, rows, cols, device=points.device)
                 res = zeros.repeat(1, 19, 1, 1)  # TODO 7 cls magic
-                return res
             else:
                 points = points.view(-1, points.size(2))
                 points, points_cls = torch.split(points, [2, 1], dim=1)
                 invalid_points = torch.max(points, dim=1, keepdim=False)[0] < 0
-                row_array = torch.arange(start=0, end=rows, step=1, dtype=torch.float32, device=points.device)
-                col_array = torch.arange(start=0, end=cols, step=1, dtype=torch.float32, device=points.device)
+                row_array = torch.arange(start=0, end=rows, step=1, dtype=torch.float32, device='cuda')
+                col_array = torch.arange(start=0, end=cols, step=1, dtype=torch.float32, device='cuda')
                 coord_rows, coord_cols = torch.meshgrid(row_array, col_array)
 
                 coords = torch.stack((coord_rows, coord_cols), dim=0).unsqueeze(0).repeat(points.size(0), 1, 1, 1)
 
-                add_xy = (points * 1).view(points.size(0), points.size(1), 1, 1)
+                add_xy = ((points * 1).view(points.size(0), points.size(1), 1, 1)).to('cuda')
                 coords.add_(-add_xy)
                 coords.mul_(coords)  # 96, 2, h, w
                 coords[:, 0] += coords[:, 1]
@@ -148,6 +147,7 @@ class New_DistMaps(nn.Module):
                     res[i, cls] = coords[i, 0]
                 res = res.view(-1,point_num, 19, rows, cols) # TODO 19 cls magic
                 res = res.max(dim=1)[0]
+            res = res.to('cuda')
             return res*255
 
     def forward(self, x, coords):

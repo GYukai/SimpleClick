@@ -254,7 +254,7 @@ class Multi_trainer(ISTrainer):
         losses_logging = dict()
 
         with torch.set_grad_enabled(not validation):
-            batch_data = {k: v.to(self.device) for k, v in batch_data.items()}
+            batch_data = {k: v.to(self.device) if k!='points' else v for k, v in batch_data.items()}
             image, gt_mask, points = batch_data['images'], batch_data['instances'], batch_data['points']
             orig_gt_mask = gt_mask.clone()
 
