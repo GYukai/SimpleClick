@@ -116,7 +116,7 @@ class CityScapes(ISDataset):
             points = init_points
         elif self.first_return_points=="random":
             points = np.array(self.points_sampler.sample_points())
-        else:
+        elif self.first_return_points=="blank":
             points = np.array([(-1, -1, -1)])
         output = {
             'images': self.to_tensor(sample.image),
