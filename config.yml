@@ -20,7 +20,7 @@ OPENIMAGES_PATH: "./datasets/OpenImages"
 PASCALVOC_PATH: "/playpen-raid2/qinliu/data/PascalVOC"
 ADE20K_PATH: "./datasets/ADE20K"
 PASCAL_PATH: "/home/gyt/gyt/dataset/data/pascal_person_part"
-CITYSCAPES_PATH: "/home/gyt/gyt/dataset/data/cityscapes"
+CITYSCAPES_PATH: "./data/cityscapes"
 
 # You can download the weights for HRNet from the repository:
 # https://github.com/HRNet/HRNet-Image-Classification
