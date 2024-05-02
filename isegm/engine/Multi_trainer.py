@@ -264,7 +264,11 @@ class Multi_trainer(ISTrainer):
             # First part
             with torch.no_grad():
                 num_iters = self.max_num_next_clicks # Here max_num_next_clicks is 3 in default
-
+                '''
+                In this block, the net will click for num_iters times(max-next-clicks)
+                prev_output is initial zeros.
+                The points are processed in dataset
+                '''
                 for click_indx in range(num_iters):
                     last_click_indx = click_indx
 
@@ -277,7 +281,7 @@ class Multi_trainer(ISTrainer):
                         eval_model = self.click_models[click_indx]
 
                     net_input = torch.cat((image, prev_output), dim=1) if self.net.with_prev_mask else image
-                    prev_output = torch.sigmoid(eval_model(net_input, points)['instances'])
+                    prev_output = torch.sigmoid(eval_model(net_input, points)['instances']) # <== This line run the model
                     prev_output = torch.max(prev_output, dim=1, keepdim=True)[1]
                     points = get_next_points(prev_output, orig_gt_mask, points, click_indx + 1)
 
@@ -379,6 +383,20 @@ class Multi_trainer(ISTrainer):
 
 
 def get_next_points(pred, gt, points, click_indx, points_num=15):
+    """    
+    This function get points feedback DURING training.
+    
+    Args:
+        pred (_type_): _description_
+        gt (_type_): _description_
+        points (_type_): _description_
+        click_indx (_type_): _description_
+        points_num (int, optional): _description_. Defaults to 15.
+
+    Returns:
+        points: torch.Tensor: [batch_size, num_points, 3]
+    """
+
     assert click_indx > 0
     pred_o = pred.cpu().numpy()[:, 0, :, :]
     gt_o = gt.cpu().numpy()[:, :, :, 0]
